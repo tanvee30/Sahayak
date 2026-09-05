@@ -85,11 +85,11 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data["email"]
+        username = serializer.validated_data["username"]
         password = serializer.validated_data["password"]
 
         try:
-            user = User.objects.get(email=email)
+            user = User.objects.get(username=username)
         except User.DoesNotExist:
             return Response({"error": "Invalid email or password."}, status=status.HTTP_400_BAD_REQUEST)
 
