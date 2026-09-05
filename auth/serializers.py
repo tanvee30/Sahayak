@@ -28,3 +28,8 @@ class VerifyOTPSerializer(serializers.Serializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+class SelectRoleSerializer(serializers.Serializer):
+    role = serializers.ChoiceField(
+        choices=User.Role.choices
+    )

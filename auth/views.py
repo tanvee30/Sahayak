@@ -5,7 +5,12 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import EmailOTP
-from .serializers import SignupSerializer, VerifyOTPSerializer, LoginSerializer
+from .serializers import (
+    SignupSerializer,
+    VerifyOTPSerializer,
+    LoginSerializer,
+    SelectRoleSerializer,
+)
 from .utils import create_and_send_otp
 from rest_framework.permissions import IsAuthenticated
 
@@ -100,6 +105,22 @@ class LoginView(APIView):
             return Response({"error": "Please verify your email with the OTP first."}, status=status.HTTP_403_FORBIDDEN)
 
         return Response(_tokens_for(user))
+
+class SelectRoleView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = SelectRoleSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user
+        user.role = serializer.validated_data["role"]
+        user.save(update_fields=["role"])
+
+        return Response({
+            "message": "Role selected successfully.",
+            "role": user.role,
+        })
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
