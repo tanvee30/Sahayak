@@ -10,6 +10,8 @@ from .serializers import (
     VerifyOTPSerializer,
     LoginSerializer,
     SelectRoleSerializer,
+    ForgotPasswordSerializer,
+    ResetPasswordSerializer,
 )
 from .utils import create_and_send_otp
 from rest_framework.permissions import IsAuthenticated
@@ -120,6 +122,88 @@ class SelectRoleView(APIView):
         return Response({
             "message": "Role selected successfully.",
             "role": user.role,
+        })
+
+class ForgotPasswordView(APIView):
+
+    def post(self, request):
+        serializer = ForgotPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "No account found with this email."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        if not user.is_active:
+            return Response(
+                {"error": "This account is inactive."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        create_and_send_otp(email, purpose="password_reset")
+
+        return Response({
+            "message": "Password reset OTP sent to your email."
+        })
+
+class ResetPasswordView(APIView):
+
+    def post(self, request):
+        serializer = ResetPasswordSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        email = serializer.validated_data["email"]
+        code = serializer.validated_data["code"]
+        new_password = serializer.validated_data["new_password"]
+
+        # Find the latest unused password-reset OTP
+        otp = (
+            EmailOTP.objects.filter(
+                email=email,
+                code=code,
+                purpose="password_reset",
+                used=False,
+            )
+            .order_by("-created_at")
+            .first()
+        )
+
+        if otp is None:
+            return Response(
+                {"error": "Invalid or already-used OTP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if otp.is_expired():
+            return Response(
+                {"error": "OTP expired. Please request a new password reset OTP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "No account found with this email."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        # Mark OTP as used
+        otp.used = True
+        otp.save(update_fields=["used"])
+
+        # Set the new password securely
+        user.set_password(new_password)
+        user.save(update_fields=["password"])
+
+        return Response({
+            "message": "Password reset successfully. You can now log in with your new password."
         })
 
 class MeView(APIView):
