@@ -9,5 +9,6 @@ urlpatterns = [
     path("select-role/", views.SelectRoleView.as_view(), name="select-role"),
     path("forgot-password/", views.ForgotPasswordView.as_view(), name="forgot-password"),
     path("reset-password/", views.ResetPasswordView.as_view(), name="reset-password"),
+    path("logout/", views.LogoutView.as_view(), name="logout"),
     path("me/", views.MeView.as_view(), name="me"),
 ]

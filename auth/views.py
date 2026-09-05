@@ -12,7 +12,9 @@ from .serializers import (
     SelectRoleSerializer,
     ForgotPasswordSerializer,
     ResetPasswordSerializer,
+    LogoutSerializer,
 )
+
 from .utils import create_and_send_otp
 from rest_framework.permissions import IsAuthenticated
 
@@ -205,6 +207,29 @@ class ResetPasswordView(APIView):
         return Response({
             "message": "Password reset successfully. You can now log in with your new password."
         })
+
+class LogoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = LogoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        refresh_token = serializer.validated_data["refresh"]
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response({
+                "message": "Logout successful."
+            })
+
+        except Exception:
+            return Response(
+                {"error": "Invalid or already-blacklisted refresh token."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 class MeView(APIView):
     permission_classes = [IsAuthenticated]
