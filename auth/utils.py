@@ -27,6 +27,13 @@ def generate_otp_code():
 #     )
 #     return otp
 def create_and_send_otp(email, purpose="signup"):
+    # Invalidate any previous unused OTP for this email and purpose
+    EmailOTP.objects.filter(
+        email=email,
+        purpose=purpose,
+        used=False,
+    ).update(used=True)
+
     code = generate_otp_code()
 
     otp = EmailOTP.objects.create(
